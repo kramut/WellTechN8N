@@ -82,12 +82,22 @@
     },
     {
       "parameters": {
-        "jsCode": "// Prepara il body per il backend\nconst input = $input.first();\n\n// Estrai i trends - potrebbe essere in input.json.trends o direttamente in input.json\nconst trends = input.json.trends || input.json || [];\n\n// Assicurati che trends sia un array\nconst trendsArray = Array.isArray(trends) ? trends : [];\n\n// Crea il body nel formato richiesto dal backend\nconst body = {\n  trends: trendsArray\n};\n\nreturn [{\n  json: body\n}];"
+        "assignments": {
+          "assignments": [
+            {
+              "id": "trends-array",
+              "name": "trends",
+              "value": "={{ $json.trends }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
       },
-      "id": "code-prepare-body",
+      "id": "set-prepare-body",
       "name": "Prepare Body",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
       "position": [1150, 300]
     },
     {
