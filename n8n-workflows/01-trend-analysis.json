@@ -44,10 +44,10 @@
             },
             {
               "name": "data_type",
-              "value": "interest_over_time"
+              "value": "TIMESERIES"
             },
             {
-              "name": "timeframe",
+              "name": "date",
               "value": "today 7-d"
             }
           ]
