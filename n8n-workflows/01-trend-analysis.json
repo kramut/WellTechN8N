@@ -21,34 +21,92 @@
     },
     {
       "parameters": {
-        "operation": "search",
-        "engine": "google_trends",
-        "query": "={{ $json.keyword }}",
-        "geo": "={{ $json.geo }}",
-        "dataType": "interest_over_time",
-        "timeframe": "today 7-d"
+        "assignments": {
+          "assignments": [
+            {
+              "id": "preserve-keyword",
+              "name": "originalKeyword",
+              "value": "={{ $json.keyword }}",
+              "type": "string"
+            },
+            {
+              "id": "preserve-geo",
+              "name": "originalGeo",
+              "value": "={{ $json.geo }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
       },
-      "id": "serpapi-google-trends",
-      "name": "SerpAPI Google Trends",
-      "type": "@n8n/n8n-nodes-serpapi.serpApi",
-      "typeVersion": 1,
-      "position": [650, 300],
-      "credentials": {
-        "serpApi": {
-          "id": "serpapi-credentials",
-          "name": "SerpAPI WellTech"
-        }
-      }
+      "id": "set-preserve-data",
+      "name": "Preserve Original Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [550, 300]
     },
     {
       "parameters": {
-        "jsCode": "// Elabora i risultati da SerpAPI\nconst items = $input.all();\nconst processedTrends = [];\n\nfor (const item of items) {\n  const keyword = item.json.keyword || 'unknown';\n  const serpData = item.json;\n  \n  // Estrai dati da SerpAPI response\n  const interestOverTime = serpData.interest_over_time?.timeline_data || \n                           serpData.timeline_data || \n                           serpData.data || [];\n  \n  if (interestOverTime.length > 0) {\n    // Calcola score medio\n    const scores = interestOverTime.map(d => d.value || d.interest || 0);\n    const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;\n    const normalizedScore = (avgScore / 100) * 10;\n    \n    // Determina categoria\n    let category = 'wellbeing';\n    const keywordLower = keyword.toLowerCase();\n    if (keywordLower.includes('sexual') || keywordLower.includes('sessual') || keywordLower.includes('benessere sessuale')) {\n      category = 'sexual-wellbeing';\n    } else if (keywordLower.includes('sustainability') || keywordLower.includes('sostenibilità') || keywordLower.includes('fotovoltaico') || keywordLower.includes('green') || keywordLower.includes('eco')) {\n      category = 'sustainability';\n    }\n    \n    processedTrends.push({\n      keyword: keyword,\n      source: 'google',\n      score: parseFloat(normalizedScore.toFixed(2)),\n      category: category,\n      metadata: {\n        region: 'IT',\n        timeframe: 'last_7_days',\n        rawScore: avgScore,\n        dataPoints: interestOverTime.length\n      }\n    });\n  } else {\n    // Fallback se non ci sono dati\n    processedTrends.push({\n      keyword: keyword,\n      source: 'google',\n      score: 5.0,\n      category: 'wellbeing',\n      metadata: {\n        region: 'IT',\n        timeframe: 'last_7_days',\n        mock: true,\n        note: 'No data from SerpAPI'\n      }\n    });\n  }\n}\n\nreturn processedTrends.map(trend => ({ json: trend }));"
+        "method": "GET",
+        "url": "https://serpapi.com/search.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "google_trends"
+            },
+            {
+              "name": "q",
+              "value": "={{ $json.keyword }}"
+            },
+            {
+              "name": "geo",
+              "value": "={{ $json.geo }}"
+            },
+            {
+              "name": "api_key",
+              "value": "42a03a12f3bb8d5d8d57ddc0d9851450b3e9b4d3323cfc8684bd1459f0a47683"
+            },
+            {
+              "name": "data_type",
+              "value": "interest_over_time"
+            },
+            {
+              "name": "timeframe",
+              "value": "today 7-d"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "http-serpapi-google-trends",
+      "name": "SerpAPI Google Trends",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "mergeByIndex",
+        "options": {}
+      },
+      "id": "merge-data",
+      "name": "Merge with Original",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [950, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Elabora i risultati da SerpAPI\n// La keyword è stata preservata nel merge\nconst items = $input.all();\nconst processedTrends = [];\n\nfor (const item of items) {\n  // Recupera keyword dal merge (originalKeyword o dalla risposta SerpAPI)\n  const keyword = item.json.originalKeyword || \n                  item.json.keyword || \n                  (item.json.search_parameters && item.json.search_parameters.q) || \n                  'unknown';\n  \n  const serpData = item.json;\n  \n  // Estrai dati da SerpAPI response\n  const interestOverTime = serpData.interest_over_time?.timeline_data || \n                           serpData.timeline_data || \n                           serpData.data || [];\n  \n  if (interestOverTime.length > 0) {\n    // Calcola score medio\n    const scores = interestOverTime.map(d => d.value || d.interest || 0).filter(v => v > 0);\n    const avgScore = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;\n    const normalizedScore = (avgScore / 100) * 10;\n    \n    // Determina categoria\n    let category = 'wellbeing';\n    const keywordLower = keyword.toLowerCase();\n    if (keywordLower.includes('sexual') || keywordLower.includes('sessual') || keywordLower.includes('benessere sessuale')) {\n      category = 'sexual-wellbeing';\n    } else if (keywordLower.includes('sustainability') || keywordLower.includes('sostenibilità') || keywordLower.includes('fotovoltaico') || keywordLower.includes('green') || keywordLower.includes('eco')) {\n      category = 'sustainability';\n    }\n    \n    processedTrends.push({\n      keyword: keyword,\n      source: 'google',\n      score: parseFloat(normalizedScore.toFixed(2)),\n      category: category,\n      metadata: {\n        region: item.json.originalGeo || 'IT',\n        timeframe: 'last_7_days',\n        rawScore: avgScore,\n        dataPoints: interestOverTime.length\n      }\n    });\n  } else {\n    // Fallback se non ci sono dati\n    processedTrends.push({\n      keyword: keyword,\n      source: 'google',\n      score: 5.0,\n      category: 'wellbeing',\n      metadata: {\n        region: item.json.originalGeo || 'IT',\n        timeframe: 'last_7_days',\n        mock: true,\n        note: 'No data from SerpAPI'\n      }\n    });\n  }\n}\n\nreturn processedTrends.map(trend => ({ json: trend }));"
       },
       "id": "code-process-results",
       "name": "Process Results",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [850, 300]
+      "position": [1150, 300]
     },
     {
       "parameters": {
@@ -58,7 +116,7 @@
       "name": "Aggregate Trends",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1050, 300]
+      "position": [1350, 300]
     },
     {
       "parameters": {
@@ -73,7 +131,7 @@
       "name": "Save Trends to Backend",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1250, 300]
+      "position": [1550, 300]
     }
   ],
   "connections": {
@@ -81,9 +139,15 @@
       "main": [[{"node": "Setup Keywords", "type": "main", "index": 0}]]
     },
     "Setup Keywords": {
+      "main": [[{"node": "Preserve Original Data", "type": "main", "index": 0}]]
+    },
+    "Preserve Original Data": {
       "main": [[{"node": "SerpAPI Google Trends", "type": "main", "index": 0}]]
     },
     "SerpAPI Google Trends": {
+      "main": [[{"node": "Merge with Original", "type": "main", "index": 0}]]
+    },
+    "Merge with Original": {
       "main": [[{"node": "Process Results", "type": "main", "index": 0}]]
     },
     "Process Results": {
