@@ -82,19 +82,28 @@
     },
     {
       "parameters": {
+        "jsCode": "// Prepara il body per il backend\nconst input = $input.first();\nconst body = {\n  trends: input.json.trends || []\n};\n\nreturn [{\n  json: body\n}];"
+      },
+      "id": "code-prepare-body",
+      "name": "Prepare Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1150, 300]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "https://welltechbackend-production.up.railway.app/api/workflows/trends/analyze",
         "sendBody": true,
         "bodyContentType": "json",
-        "specifyBody": "json",
-        "jsonBody": "={{ { trends: $json.trends } }}",
+        "jsonBody": "={{ $json }}",
         "options": {}
       },
       "id": "http-save-trends",
       "name": "Save Trends to Backend",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1250, 300]
+      "position": [1350, 300]
     }
   ],
   "connections": {
@@ -111,6 +120,9 @@
       "main": [[{"node": "Aggregate Trends", "type": "main", "index": 0}]]
     },
     "Aggregate Trends": {
+      "main": [[{"node": "Prepare Body", "type": "main", "index": 0}]]
+    },
+    "Prepare Body": {
       "main": [[{"node": "Save Trends to Backend", "type": "main", "index": 0}]]
     },
     "Save Trends to Backend": {
