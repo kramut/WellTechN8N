@@ -48,7 +48,7 @@
             },
             {
               "name": "date",
-              "value": "today 7-d"
+              "value": "now 7-d"
             }
           ]
         },
