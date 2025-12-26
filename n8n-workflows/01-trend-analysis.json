@@ -86,7 +86,8 @@
         "url": "https://welltechbackend-production.up.railway.app/api/workflows/trends/analyze",
         "sendBody": true,
         "bodyContentType": "json",
-        "jsonBody": "={{ { trends: $json.trends || [] } }}",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ trends: $json.trends || [] }) }}",
         "options": {}
       },
       "id": "http-save-trends",
