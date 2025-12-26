@@ -87,7 +87,7 @@
         "sendBody": true,
         "bodyContentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ trends: $json.trends || [] }) }}",
+        "jsonBody": "={{ { trends: $json.trends } }}",
         "options": {}
       },
       "id": "http-save-trends",
